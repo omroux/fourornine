@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "opencv-python",
-        "numpy",
+        "shapely",
     ],
     entry_points={
         "console_scripts": ["fourornine=fourornine.__main__:main"]
