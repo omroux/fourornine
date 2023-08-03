@@ -1,3 +1,4 @@
+from shapely.geometry import Point, Polygon
 import cv2
 
 # the program may detect multiple rectangles, and the function should identify if two rectangles are virtually the same.
