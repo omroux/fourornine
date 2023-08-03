@@ -23,12 +23,12 @@ def same_rect(points1, points2):
 # checks if one rectangle is completely inside of another.
 
 
-def rect_inside(rin, rout):
+def rect_inside(inner_rect, outer_rect):
     '''rinx,routx = sorted(rin),sorted(rout)
     riny,routy = sorted(rin, key=lambda p:(p[1],p[0])),sorted(rout, key=lambda p:(p[1],p[0]))
     return rinx[0][0] > routx[1][0] and rinx[3][0] < routx[2][0] and riny[0][1] > routy[1][1] and riny[3][1] < routy[2][1]'''
-    poly = Polygon(rout)
-    for p in rin:
+    poly = Polygon(outer_rect)
+    for p in inner_rect:
         point = Point(p[0], p[1])
         if not poly.contains(point):
             return False
