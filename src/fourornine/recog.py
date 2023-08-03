@@ -1,8 +1,4 @@
-from pickle import TRUE
-from types import NoneType
-from shapely.geometry import Point, Polygon
 import cv2
-import numpy as np
 
 # the program may detect multiple rectangles, and the function should identify if two rectangles are virtually the same.
 
