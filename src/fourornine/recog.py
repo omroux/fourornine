@@ -1,6 +1,10 @@
 from shapely.geometry import Point, Polygon
 import cv2
 
+# Filter the contours based on their area and shape
+MIN_AREA = 50000  # Minimum contour area to consider
+# Minimum number of sides (approximated) to consider as a potential square
+MIN_SIDES = 4
 # the program may detect multiple rectangles, and the function should identify if two rectangles are virtually the same.
 
 
@@ -93,7 +97,7 @@ def identify_digit(x1, x2, x3, y1, y2, y3, y4, image):
 # it returns the lines that where used for the seperation (for debugging) and the digits identified.
 
 
-def seperate_digits(rect):
+def seperate_digits(image, rect):
     rect = sorted(rect)
     y1 = (max(rect[0][1], rect[1][1])+max(rect[2][1], rect[3][1]))//2
     y2 = (min(rect[0][1], rect[1][1])+min(rect[2][1], rect[3][1]))//2
@@ -133,123 +137,121 @@ def seperate_digits(rect):
     return lines, [d1, d2, d3, d4, d5, d6]
 
 
-# code from chatgpt, don't tell anyone ;)
-# Load the image
-image_path = 'image11.jpg'
-image = cv2.imread(image_path)
-
-# Convert the image to grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-# Apply Gaussian blur to reduce noise
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-# Perform edge detection
-edges = cv2.Canny(blurred, 50, 150)
-
-# Find contours in the edge map
-contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-# Filter the contours based on their area and shape
-min_area = 50000  # Minimum contour area to consider
-# Minimum number of sides (approximated) to consider as a potential square
-min_sides = 4
-
-potential_squares = []
-for contour in contours:
+def is_square(contour) -> bool:
     area = cv2.contourArea(contour)
     approx = cv2.approxPolyDP(
         contour, 0.04 * cv2.arcLength(contour, True), True)
     sides = len(approx)
-    if area > min_area and sides == min_sides:
-        potential_squares.append(approx)
+    return area > MIN_AREA and sides == MIN_SIDES
 
 
-# Get the corner points for each potential square
-corner_points = []
-for square in potential_squares:
-    corners = []
-    for point in square:
-        x, y = point[0]
-        corners.append((x, y))
-    corner_points.append(corners)
-is_real_corners = [True] * len(corner_points)
-for i, points in enumerate(corner_points):
-    if not is_real_corners[i]:
-        continue
-    for j, points2 in enumerate(corner_points):
-        if j <= i:
-            continue
-        if same_rect(points, points2):
-            is_real_corners[j] = False
-real_corners = []
-for i, points in enumerate(corner_points):
-    if is_real_corners[i]:
-        real_corners.append(points)
-# finds a DAG that represents which rectangle is inside of which.
-rect_graph = [[] for i in range(len(real_corners))]
-for i, r1 in enumerate(real_corners):
-    for j, r2 in enumerate(real_corners):
-        if i >= j:
-            continue
-        if rect_inside(r1, r2):
-            rect_graph[j].append(i)
-        elif rect_inside(r2, r1):
-            rect_graph[i].append(j)
+def main():
+    # code from chatgpt, don't tell anyone ;)
+    # Load the image
+    image_path = "./examples/images/scorecard1.png"
+    image = cv2.imread(image_path)
 
-# Print the corner points of each polygon
-'''for i, corners in enumerate(real_corners):
-    d = get_depth(rect_graph,i)
-    if d==0:
-        slines = seperate_digits(corners)
-        for l in slines:
-            cv2.line(image,l[0],l[1],(0,0,0),1)
-        for i in range(len(slines)-1):
-            #roi = image[slines[i][1][1]:slines[i][0][1], slines[i][0][0]:slines[i+1][0][0]]
-            ''roi = image[0:1000,0:1000]
-            gray_roi = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            edges = cv2.Canny(gray_roi,50,150,apertureSize=3)
-            lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10)
-            if type(lines) != NoneType:
-                for line in lines:
-                    x1, y1, x2, y2 = line[0]
-                    cv2.line(image, (x + x1, y + y1), (x + x2, y + y2), (0, 0, 255), 2)''
-    for point in corners:
-        cv2.circle(image,(point[0],point[1]),3,(255*int(d==0),255*int(d==1),255*int(d>=2)),-1)'''
-pages = []
-for i, corners in enumerate(real_corners):
-    d = get_depth(rect_graph, i)
-    for point in corners:
-        cv2.circle(image, (point[0], point[1]), 3, (255 *
-                   int(d == 0), 255*int(d == 1), 255*int(d >= 2)), -1)
-    # only rectangles that contain 5 rectangles inside of them, and are of depth 1, are the pages in the image.
-    if d == 1:
-        if len(rect_graph[i]) != 5:
-            print('whaaaaat', len(rect_graph[i]))
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Perform edge detection
+    edges = cv2.Canny(blurred, 50, 150)
+
+    # Find contours in the edge map
+    contours, _ = cv2.findContours(
+        edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+
+    potential_squares = filter(is_square, contours)
+
+    # Get the corner points for each potential square
+    corner_points = []
+    for square in potential_squares:
+        corners = []
+        for point in square:
+            x, y = point[0]
+            corners.append((x, y))
+        corner_points.append(corners)
+    is_real_corners = [True] * len(corner_points)
+    for i, points in enumerate(corner_points):
+        if not is_real_corners[i]:
             continue
-        pages.append([])
-        for j in sorted(rect_graph[i], key=lambda k: (sorted(real_corners[k], key=lambda p: p[1])[0][1])):
-            slines, digits = seperate_digits(real_corners[j])
-            if -1 in digits:
-                pages[-1].append(['e', 'r', 'r', 'o', 'r', '!'])
-                pages[-1].append(digits)
-            else:
-                pages[-1].append(digits)
+        for j, points2 in enumerate(corner_points):
+            if j <= i:
+                continue
+            if same_rect(points, points2):
+                is_real_corners[j] = False
+    real_corners = []
+    for i, points in enumerate(corner_points):
+        if is_real_corners[i]:
+            real_corners.append(points)
+    # finds a DAG that represents which rectangle is inside of which.
+    rect_graph = [[] for i in range(len(real_corners))]
+    for i, r1 in enumerate(real_corners):
+        for j, r2 in enumerate(real_corners):
+            if i >= j:
+                continue
+            if rect_inside(r1, r2):
+                rect_graph[j].append(i)
+            elif rect_inside(r2, r1):
+                rect_graph[i].append(j)
+
+    # Print the corner points of each polygon
+    '''for i, corners in enumerate(real_corners):
+        d = get_depth(rect_graph,i)
+        if d==0:
+            slines = seperate_digits(corners)
             for l in slines:
-                cv2.line(image, l[0], l[1], (0, 0, 0), 1)
-# print the results.
-for i, p in enumerate(pages):
-    print('Page', i, 'times:')
-    for digits in p:
-        for d in digits:
-            if (d == 10):
-                print('-', end="")
-            else:
-                print(d, end="")
-        print()
+                cv2.line(image,l[0],l[1],(0,0,0),1)
+            for i in range(len(slines)-1):
+                #roi = image[slines[i][1][1]:slines[i][0][1], slines[i][0][0]:slines[i+1][0][0]]
+                ''roi = image[0:1000,0:1000]
+                gray_roi = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                edges = cv2.Canny(gray_roi,50,150,apertureSize=3)
+                lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10)
+                if type(lines) != NoneType:
+                    for line in lines:
+                        x1, y1, x2, y2 = line[0]
+                        cv2.line(image, (x + x1, y + y1), (x + x2, y + y2), (0, 0, 255), 2)''
+        for point in corners:
+            cv2.circle(image,(point[0],point[1]),3,(255*int(d==0),255*int(d==1),255*int(d>=2)),-1)'''
+    pages = []
+    for i, corners in enumerate(real_corners):
+        d = get_depth(rect_graph, i)
+        for point in corners:
+            cv2.circle(image, (point[0], point[1]), 3, (255 *
+                       int(d == 0), 255*int(d == 1), 255*int(d >= 2)), -1)
+        # only rectangles that contain 5 rectangles inside of them, and are of depth 1, are the pages in the image.
+        if d == 1:
+            if len(rect_graph[i]) != 5:
+                print('whaaaaat', len(rect_graph[i]))
+                continue
+            pages.append([])
+            for j in sorted(rect_graph[i], key=lambda k: (sorted(real_corners[k], key=lambda p: p[1])[0][1])):
+                slines, digits = seperate_digits(image, real_corners[j])
+                if -1 in digits:
+                    pages[-1].append(['e', 'r', 'r', 'o', 'r', '!'])
+                    pages[-1].append(digits)
+                else:
+                    pages[-1].append(digits)
+                for l in slines:
+                    cv2.line(image, l[0], l[1], (0, 0, 0), 1)
+    # print the results.
+    for i, p in enumerate(pages):
+        print('Page', i, 'times:')
+        for digits in p:
+            for d in digits:
+                if (d == 10):
+                    print('-', end="")
+                else:
+                    print(d, end="")
+            print()
 
-# Display the image with the potential squares highlighted
-cv2.imwrite('res11.jpg', image)
-cv2.imshow("Potential Squares", image)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    # Display the image with the potential squares highlighted
+    cv2.imwrite('res11.jpg', image)
+    cv2.imshow("Potential Squares", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
