@@ -154,8 +154,7 @@ def find_square_corners(potential_squares):
             x, y = point[0]
             corners.append((x, y))
         corner_points.append(corners)
-    is_real_corners = [True] * len(corner_points)
-    return corner_points, is_real_corners
+    return corner_points
 
 
 def main():
@@ -189,7 +188,8 @@ def main():
     potential_squares = filter(is_square, polygons)
 
     # Get the corner points for each potential square
-    corner_points, is_real_corners = find_square_corners(potential_squares)
+    corner_points = find_square_corners(potential_squares)
+    is_real_corners = [True] * len(corner_points)
 
     for i, points in enumerate(corner_points):
         if not is_real_corners[i]:
