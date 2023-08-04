@@ -175,7 +175,6 @@ def filter_square_corners(corner_points):
     return real_corners
 
 
-
 def find_confined_rectangles(real_corners):
     rect_graph = [[] for i in range(len(real_corners))]
     for i, r1 in enumerate(real_corners):
@@ -187,7 +186,6 @@ def find_confined_rectangles(real_corners):
             elif rect_inside(r2, r1):
                 rect_graph[i].append(j)
     return rect_graph
-
 
 
 def main():
@@ -207,7 +205,10 @@ def main():
 
     # Find contours in the edge map
     contours, _ = cv2.findContours(
-        edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        edges,
+        cv2.RETR_LIST,
+        cv2.CHAIN_APPROX_SIMPLE,
+    )
 
     polygons = map(
         lambda contour: cv2.approxPolyDP(
