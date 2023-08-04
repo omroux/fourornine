@@ -259,7 +259,7 @@ def main():
             print()
 
     # Display the image with the potential squares highlighted
-    cv2.imwrite('res11.jpg', image)
+    cv2.imwrite('out/res11.jpg', image)
     cv2.imshow("Potential Squares", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
