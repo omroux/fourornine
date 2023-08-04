@@ -218,17 +218,16 @@ def main():
         contours,
     )
 
-    potential_squares = filter(is_square, polygons)
-
+    squares = filter(is_square, polygons)
     # Get the corner points for each potential square
-    corner_points = find_square_corners(potential_squares)
-    real_corners = filter_square_corners(corner_points)
+    square_corners = find_square_corners(squares)
+    square_corners = filter_square_corners(square_corners)
     # finds a DAG that represents which rectangle is inside of which.
-    rect_graph = find_confined_rectangles(real_corners)
+    rect_graph = find_confined_rectangles(square_corners)
 
     # Print the corner points of each polygon
     pages = []
-    for i, corners in enumerate(real_corners):
+    for i, corners in enumerate(square_corners):
         d = get_depth(rect_graph, i)
         for point in corners:
             cv2.circle(image, (point[0], point[1]), 3, (255 *
@@ -239,8 +238,8 @@ def main():
                 print('whaaaaat', len(rect_graph[i]))
                 continue
             pages.append([])
-            for j in sorted(rect_graph[i], key=lambda k: (sorted(real_corners[k], key=lambda p: p[1])[0][1])):
-                slines, digits = seperate_digits(real_corners[j], image)
+            for j in sorted(rect_graph[i], key=lambda k: (sorted(square_corners[k], key=lambda p: p[1])[0][1])):
+                slines, digits = seperate_digits(square_corners[j], image)
                 if -1 in digits:
                     pages[-1].append(['e', 'r', 'r', 'o', 'r', '!'])
                     pages[-1].append(digits)
