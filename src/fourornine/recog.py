@@ -146,6 +146,18 @@ def is_square(polygon: np.ndarray) -> bool:
     return area > min_area and sides == min_sides
 
 
+def find_square_corners(potential_squares):
+    corner_points = []
+    for square in potential_squares:
+        corners = []
+        for point in square:
+            x, y = point[0]
+            corners.append((x, y))
+        corner_points.append(corners)
+    is_real_corners = [True] * len(corner_points)
+    return corner_points, is_real_corners
+
+
 def main():
     # code from chatgpt, don't tell anyone ;)
     # Load the image
@@ -177,14 +189,8 @@ def main():
     potential_squares = filter(is_square, polygons)
 
     # Get the corner points for each potential square
-    corner_points = []
-    for square in potential_squares:
-        corners = []
-        for point in square:
-            x, y = point[0]
-            corners.append((x, y))
-        corner_points.append(corners)
-    is_real_corners = [True] * len(corner_points)
+    corner_points, is_real_corners = find_square_corners(potential_squares)
+
     for i, points in enumerate(corner_points):
         if not is_real_corners[i]:
             continue
