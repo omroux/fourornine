@@ -157,6 +157,39 @@ def find_square_corners(potential_squares):
     return corner_points
 
 
+def filter_square_corners(corner_points):
+    is_real_corners = [True] * len(corner_points)
+
+    for i, points in enumerate(corner_points):
+        if not is_real_corners[i]:
+            continue
+        for j, points2 in enumerate(corner_points):
+            if j <= i:
+                continue
+            if same_rect(points, points2):
+                is_real_corners[j] = False
+    real_corners = []
+    for i, points in enumerate(corner_points):
+        if is_real_corners[i]:
+            real_corners.append(points)
+    return real_corners
+
+
+
+def find_confined_rectangles(real_corners):
+    rect_graph = [[] for i in range(len(real_corners))]
+    for i, r1 in enumerate(real_corners):
+        for j, r2 in enumerate(real_corners):
+            if i >= j:
+                continue
+            if rect_inside(r1, r2):
+                rect_graph[j].append(i)
+            elif rect_inside(r2, r1):
+                rect_graph[i].append(j)
+    return rect_graph
+
+
+
 def main():
     # code from chatgpt, don't tell anyone ;)
     # Load the image
@@ -189,50 +222,11 @@ def main():
 
     # Get the corner points for each potential square
     corner_points = find_square_corners(potential_squares)
-    is_real_corners = [True] * len(corner_points)
-
-    for i, points in enumerate(corner_points):
-        if not is_real_corners[i]:
-            continue
-        for j, points2 in enumerate(corner_points):
-            if j <= i:
-                continue
-            if same_rect(points, points2):
-                is_real_corners[j] = False
-    real_corners = []
-    for i, points in enumerate(corner_points):
-        if is_real_corners[i]:
-            real_corners.append(points)
+    real_corners = filter_square_corners(corner_points)
     # finds a DAG that represents which rectangle is inside of which.
-    rect_graph = [[] for i in range(len(real_corners))]
-    for i, r1 in enumerate(real_corners):
-        for j, r2 in enumerate(real_corners):
-            if i >= j:
-                continue
-            if rect_inside(r1, r2):
-                rect_graph[j].append(i)
-            elif rect_inside(r2, r1):
-                rect_graph[i].append(j)
+    rect_graph = find_confined_rectangles(real_corners)
 
     # Print the corner points of each polygon
-    '''for i, corners in enumerate(real_corners):
-        d = get_depth(rect_graph,i)
-        if d==0:
-            slines = seperate_digits(corners)
-            for l in slines:
-                cv2.line(image,l[0],l[1],(0,0,0),1)
-            for i in range(len(slines)-1):
-                #roi = image[slines[i][1][1]:slines[i][0][1], slines[i][0][0]:slines[i+1][0][0]]
-                ''roi = image[0:1000,0:1000]
-                gray_roi = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray_roi,50,150,apertureSize=3)
-                lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10)
-                if type(lines) != NoneType:
-                    for line in lines:
-                        x1, y1, x2, y2 = line[0]
-                        cv2.line(image, (x + x1, y + y1), (x + x2, y + y2), (0, 0, 255), 2)''
-        for point in corners:
-            cv2.circle(image,(point[0],point[1]),3,(255*int(d==0),255*int(d==1),255*int(d>=2)),-1)'''
     pages = []
     for i, corners in enumerate(real_corners):
         d = get_depth(rect_graph, i)
